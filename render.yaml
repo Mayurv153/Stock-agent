@@ -1,0 +1,23 @@
+services:
+  - type: background-worker
+    name: stock-agent
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    envVars:
+      - key: GROQ_API_KEY
+        sync: false
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: EMAIL_SENDER
+        sync: false
+      - key: EMAIL_PASSWORD
+        sync: false
+      - key: EMAIL_RECEIVER
+        sync: false
+      - key: PORTFOLIO_CAPITAL
+        value: "100000"
+      - key: TZ
+        value: Asia/Kolkata

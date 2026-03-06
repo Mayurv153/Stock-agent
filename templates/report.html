@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stock Analysis Report — {{ report_date }}</title>
+<style>
+  :root { --green: #22c55e; --red: #ef4444; --yellow: #eab308; --bg: #0f172a; --card: #1e293b; --text: #e2e8f0; --muted: #94a3b8; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 20px; line-height: 1.6; }
+  .container { max-width: 960px; margin: 0 auto; }
+  h1 { text-align: center; font-size: 1.8rem; margin-bottom: 4px; }
+  .subtitle { text-align: center; color: var(--muted); margin-bottom: 24px; }
+  .section-title { font-size: 1.3rem; margin: 28px 0 14px; padding-bottom: 6px; border-bottom: 2px solid #334155; }
+  .section-title.buy   { color: var(--green); border-color: var(--green); }
+  .section-title.sell  { color: var(--red);   border-color: var(--red); }
+  .section-title.hold  { color: var(--yellow);border-color: var(--yellow); }
+  .section-title.avoid { color: var(--muted); border-color: var(--muted); }
+  .card { background: var(--card); border-radius: 10px; padding: 18px 22px; margin-bottom: 16px; border-left: 4px solid #334155; }
+  .card.buy  { border-left-color: var(--green); }
+  .card.sell { border-left-color: var(--red); }
+  .card.hold { border-left-color: var(--yellow); }
+  .card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .card-header h3 { font-size: 1.1rem; }
+  .badge { display: inline-block; padding: 3px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; color: #000; }
+  .badge.buy  { background: var(--green); }
+  .badge.sell { background: var(--red); color: #fff; }
+  .badge.hold { background: var(--yellow); }
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px 20px; font-size: 0.92rem; }
+  .metric span.label { color: var(--muted); }
+  .reasons { margin-top: 10px; font-size: 0.9rem; }
+  .reasons li { margin-left: 18px; margin-bottom: 2px; }
+  .risk-warning { margin-top: 8px; color: var(--yellow); font-size: 0.85rem; }
+  .confidence-bar { height: 6px; border-radius: 3px; background: #334155; margin-top: 6px; }
+  .confidence-fill { height: 100%; border-radius: 3px; }
+  .fill-high   { background: var(--green); }
+  .fill-medium { background: var(--yellow); }
+  .fill-low    { background: var(--red); }
+  .summary-table { width: 100%; border-collapse: collapse; margin-top: 14px; font-size: 0.9rem; }
+  .summary-table th, .summary-table td { padding: 8px 12px; text-align: left; border-bottom: 1px solid #334155; }
+  .summary-table th { color: var(--muted); font-weight: 600; }
+  .disclaimer { margin-top: 40px; padding: 16px; background: #1a1a2e; border-radius: 8px; font-size: 0.8rem; color: var(--muted); }
+  .no-picks { color: var(--muted); font-style: italic; padding: 12px 0; }
+</style>
+</head>
+<body>
+<div class="container">
+
+<h1>📊 AI Stock Market Analysis Report</h1>
+<p class="subtitle">{{ report_date }} — Indian Markets (NSE)</p>
+
+<!-- ============ MARKET SUMMARY ============ -->
+<h2 class="section-title">Market Summary</h2>
+<table class="summary-table">
+<tr><th>Total Stocks Analysed</th><td>{{ total_analysed }}</td></tr>
+<tr><th>BUY Recommendations</th><td style="color:var(--green)">{{ buy_count }}</td></tr>
+<tr><th>SELL Recommendations</th><td style="color:var(--red)">{{ sell_count }}</td></tr>
+<tr><th>HOLD Recommendations</th><td style="color:var(--yellow)">{{ hold_count }}</td></tr>
+<tr><th>Analysis Failures</th><td>{{ fail_count }}</td></tr>
+</table>
+
+<!-- ============ TOP BUY PICKS ============ -->
+<h2 class="section-title buy">🟢 Top Buy Picks</h2>
+{% if buy_picks %}
+{% for r in buy_picks %}
+<div class="card buy">
+  <div class="card-header">
+    <h3>{{ r.symbol }}</h3>
+    <span class="badge buy">BUY — {{ r.trade_type }}</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><span class="label">Entry :</span> ₹{{ "%.2f"|format(r.entry_price) }}</div>
+    <div class="metric"><span class="label">Target:</span> ₹{{ "%.2f"|format(r.target_price) }}</div>
+    <div class="metric"><span class="label">Stop Loss:</span> ₹{{ "%.2f"|format(r.stop_loss) }}</div>
+    <div class="metric"><span class="label">Risk  :</span> {{ r.risk_level }}</div>
+    <div class="metric"><span class="label">Confidence:</span> {{ r.confidence_score }}%</div>
+  </div>
+  <div class="confidence-bar"><div class="confidence-fill {% if r.confidence_score >= 75 %}fill-high{% elif r.confidence_score >= 50 %}fill-medium{% else %}fill-low{% endif %}" style="width:{{ r.confidence_score }}%"></div></div>
+  <ul class="reasons">{% for reason in r.key_reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+  {% if r.risk_warning %}<p class="risk-warning">⚠️ {{ r.risk_warning }}</p>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p class="no-picks">No strong buy picks today.</p>
+{% endif %}
+
+<!-- ============ INTRADAY PICKS ============ -->
+<h2 class="section-title buy">⚡ Intraday Picks</h2>
+{% if intraday_picks %}
+{% for r in intraday_picks %}
+<div class="card buy">
+  <div class="card-header">
+    <h3>{{ r.symbol }}</h3>
+    <span class="badge buy">INTRADAY</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><span class="label">Entry :</span> ₹{{ "%.2f"|format(r.entry_price) }}</div>
+    <div class="metric"><span class="label">Target:</span> ₹{{ "%.2f"|format(r.target_price) }}</div>
+    <div class="metric"><span class="label">Stop Loss:</span> ₹{{ "%.2f"|format(r.stop_loss) }}</div>
+    <div class="metric"><span class="label">Risk  :</span> {{ r.risk_level }}</div>
+    <div class="metric"><span class="label">Confidence:</span> {{ r.confidence_score }}%</div>
+  </div>
+  <div class="confidence-bar"><div class="confidence-fill {% if r.confidence_score >= 75 %}fill-high{% elif r.confidence_score >= 50 %}fill-medium{% else %}fill-low{% endif %}" style="width:{{ r.confidence_score }}%"></div></div>
+  <ul class="reasons">{% for reason in r.key_reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+  {% if r.risk_warning %}<p class="risk-warning">⚠️ {{ r.risk_warning }}</p>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p class="no-picks">No intraday picks today.</p>
+{% endif %}
+
+<!-- ============ STOCKS TO AVOID ============ -->
+<h2 class="section-title avoid">🚫 Stocks to Avoid</h2>
+{% if avoid_picks %}
+{% for r in avoid_picks %}
+<div class="card sell">
+  <div class="card-header">
+    <h3>{{ r.symbol }}</h3>
+    <span class="badge sell">{{ r.recommendation }} — AVOID</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><span class="label">Risk  :</span> {{ r.risk_level }}</div>
+    <div class="metric"><span class="label">Confidence:</span> {{ r.confidence_score }}%</div>
+  </div>
+  <ul class="reasons">{% for reason in r.key_reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+  {% if r.risk_warning %}<p class="risk-warning">⚠️ {{ r.risk_warning }}</p>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<p class="no-picks">No stocks flagged to avoid today.</p>
+{% endif %}
+
+<!-- ============ HOLD ============ -->
+<h2 class="section-title hold">🟡 Hold / Neutral</h2>
+{% if hold_picks %}
+{% for r in hold_picks %}
+<div class="card hold">
+  <div class="card-header">
+    <h3>{{ r.symbol }}</h3>
+    <span class="badge hold">HOLD</span>
+  </div>
+  <div class="metrics">
+    <div class="metric"><span class="label">Risk  :</span> {{ r.risk_level }}</div>
+    <div class="metric"><span class="label">Confidence:</span> {{ r.confidence_score }}%</div>
+  </div>
+  <ul class="reasons">{% for reason in r.key_reasons %}<li>{{ reason }}</li>{% endfor %}</ul>
+</div>
+{% endfor %}
+{% else %}
+<p class="no-picks">No hold recommendations today.</p>
+{% endif %}
+
+<!-- ============ DISCLAIMER ============ -->
+<div class="disclaimer">
+  <strong>⚠️ DISCLAIMER:</strong> This report is generated by an AI agent for
+  <strong>educational and informational purposes only</strong>. It does NOT
+  constitute financial advice. Stock markets are subject to market risk —
+  past performance is not indicative of future results. Always do your own
+  research (DYOR) and consult a SEBI-registered financial advisor before
+  making any investment decisions. The creators of this tool are not
+  responsible for any financial losses incurred.
+</div>
+
+</div>
+</body>
+</html>
