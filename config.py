@@ -46,7 +46,7 @@ GROQ_RETRY_DELAY: float = 2.0              # seconds between retries
 # ── Stock Watchlist (NSE symbols) ────────────────────────────
 # Add .NS suffix for NSE, .BO suffix for BSE when querying yfinance.
 
-# Full Nifty 50
+# Top 30 Nifty stocks (optimised for Groq 100K daily token limit)
 NIFTY_50: list[str] = [
     "RELIANCE", "TCS", "INFY", "HDFCBANK", "ICICIBANK",
     "SBIN", "BHARTIARTL", "HINDUNILVR", "ITC", "KOTAKBANK",
@@ -54,10 +54,6 @@ NIFTY_50: list[str] = [
     "HCLTECH", "WIPRO", "TITAN", "SUNPHARMA", "NTPC",
     "TATASTEEL", "POWERGRID", "ONGC", "TECHM", "ADANIENT",
     "ADANIPORTS", "ASIANPAINT", "DRREDDY", "JSWSTEEL", "ULTRACEMCO",
-    "NESTLEIND", "BAJAJ-AUTO", "APOLLOHOSP", "GRASIM", "BRITANNIA",
-    "CIPLA", "DIVISLAB", "COALINDIA", "BPCL", "EICHERMOT",
-    "HEROMOTOCO", "HINDALCO", "INDUSINDBK", "TATACONSUM", "SBILIFE",
-    "HDFCLIFE", "LTIM",
 ]
 
 # Nifty Next 50 (Midcap leaders)
