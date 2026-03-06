@@ -1,18 +1,19 @@
 """
-start.py — Cloud entry point for Render deployment.
+start.py — Cloud entry point (Azure / Render / any PaaS).
 
-Runs BOTH the daily scheduler AND the interactive Telegram bot
-in parallel using threading.
-
-- Scheduler: Runs full pipeline at 08:30 IST (Mon-Fri)
-- Telegram Bot: Always listening for /scan, /analyse, /heatmap, etc.
+Runs THREE services in parallel using threading:
+- Health-check HTTP server (keeps Azure App Service alive)
+- Daily scheduler (08:30 IST, Mon-Fri)
+- Interactive Telegram bot (/scan, /analyse, /heatmap, etc.)
 """
 
 import logging
+import os
 import threading
 import sys
 import io
 import signal
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import config
 
@@ -43,6 +44,30 @@ def setup_cloud_logging():
     root.addHandler(fh)
 
 
+# ── Lightweight health-check HTTP server (for Azure App Service) ──────
+
+class HealthHandler(BaseHTTPRequestHandler):
+    """Responds 200 OK on any request — keeps Azure alive."""
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Type", "text/plain")
+        self.end_headers()
+        self.wfile.write(b"Stock Agent is running")
+
+    def log_message(self, fmt, *args):
+        pass  # suppress noisy HTTP logs
+
+
+def run_health_server():
+    """Start a tiny HTTP server on the PORT Azure expects."""
+    port = int(os.environ.get("PORT", 8000))
+    server = HTTPServer(("0.0.0.0", port), HealthHandler)
+    logging.getLogger("start.health").info(
+        "Health-check server listening on port %d", port
+    )
+    server.serve_forever()
+
+
 def run_scheduler():
     """Start the daily scheduler in a thread."""
     logger = logging.getLogger("start.scheduler")
@@ -70,14 +95,22 @@ def main():
     logger = logging.getLogger("start")
 
     logger.info("=" * 60)
-    logger.info("🚀 AI Stock Agent — Cloud Deployment Starting")
+    logger.info("AI Stock Agent — Cloud Deployment Starting")
     logger.info("=" * 60)
     logger.info("Timezone: Asia/Kolkata (IST)")
     logger.info("Scheduler: Daily at %s IST", config.SCHEDULE_TIME_IST)
     logger.info("Telegram Bot: Active (interactive commands)")
     logger.info("=" * 60)
 
-    # Start scheduler in background thread
+    # 1) Health-check HTTP server (keeps Azure from killing the container)
+    health_thread = threading.Thread(
+        target=run_health_server,
+        name="HealthCheck",
+        daemon=True,
+    )
+    health_thread.start()
+
+    # 2) Start scheduler in background thread
     scheduler_thread = threading.Thread(
         target=run_scheduler,
         name="Scheduler",
@@ -86,7 +119,7 @@ def main():
     scheduler_thread.start()
     logger.info("Scheduler thread started.")
 
-    # Run Telegram bot in main thread (blocking)
+    # 3) Run Telegram bot in main thread (blocking)
     # This keeps the process alive
     run_bot()
 
